@@ -1,0 +1,249 @@
+MODULO IV: Seguridad Avanzada y Servicios de Red
+
+==============================================================================================================================================
+
+Práctica 1: Cifrado GPG2 / Ubuntu
+
+-Instalar GPG2 (GnuPG)-
+
+sudo apt update
+(Para actualizar la lista de paquetes disponibles)
+
+sudo apt install gnupg2
+(Para instalar la herramienta GnuPG 2, que incluye gpg2)
+
+-Crear y cifrar un archivo-
+
+mkdir directorio_seguro
+(Para crear un nuevo directorio donde trabajaremos)
+
+cd directorio_seguro
+(Para entrar al directorio recién creado)
+
+echo "Este es mi archivo secreto" > secreto.txt
+(Para crear un archivo de texto llamado 'secreto.txt' con contenido)
+
+gpg2 -c secreto.txt
+(Para cifrar el archivo. Te pedirá una contraseña (passphrase) dos veces para confirmar)
+
+ls -l
+(Para listar los archivos. Verás 'secreto.txt' y el nuevo archivo cifrado 'secreto.txt.gpg')
+
+-Intentar acceder al archivo cifrado-
+
+cat secreto.txt.gpg
+(Mostrará contenido binario ilegible, demostrando que está cifrado)
+
+rm secreto.txt
+(Para borrar el archivo original sin cifrar, por seguridad)
+
+-Descifrar el archivo y mostrar contenido-
+
+gpg2 -o descifrado.txt -d secreto.txt.gpg
+(Para descifrar 'secreto.txt.gpg'. Te pedirá la contraseña. El contenido se guardará en 'descifrado.txt')
+
+cat descifrado.txt
+(Para mostrar el contenido del archivo ya descifrado, que debe ser "Este es mi archivo secreto")
+
+==============================================================================================================================================
+
+Práctica 2: IPtables y UFW / Ubuntu
+
+-Instalar y habilitar servicios (HTTP, FTP, SSH)-
+
+sudo apt update
+(Para actualizar la lista de paquetes)
+
+sudo apt install apache2 vsftpd openssh-server
+(Para instalar el servidor web Apache, el servidor FTP vsftpd y el servidor SSH)
+
+sudo systemctl start apache2
+sudo systemctl start vsftpd
+sudo systemctl start ssh
+(Para iniciar los tres servicios)
+
+ss -tlpn | grep -E ':(80|21|22)'
+(Para confirmar que los puertos 80 (http), 21 (ftp) y 22 (ssh) están escuchando)
+
+-Bloquear puertos con IPtables-
+
+sudo ufw disable
+(Importante: Deshabilitamos UFW para que no interfiera con las reglas manuales de IPtables)
+
+sudo iptables -A INPUT -p tcp --dport 80 -j DROP
+(Para añadir una regla que bloquea toda entrada TCP al puerto 80)
+
+sudo iptables -A INPUT -p tcp --dport 21 -j DROP
+(Para añadir una regla que bloquea toda entrada TCP al puerto 21)
+
+sudo iptables -A INPUT -p tcp --dport 22 -j DROP
+(Para añadir una regla que bloquea toda entrada TCP al puerto 22. Cuidado: esto bloqueará tu acceso SSH si estás conectado remotamente)
+
+sudo iptables -L INPUT -n --line-numbers
+(Para listar las reglas de la cadena INPUT y ver los bloqueos aplicados)
+
+-Habilitar puertos nuevamente con IPtables-
+
+sudo iptables -F
+(Para 'Flush' o limpiar TODAS las reglas. Es la forma más rápida de eliminar los bloqueos y restaurar el acceso)
+
+sudo iptables -L INPUT -n
+(Para comprobar que la lista de reglas está vacía)
+
+-Bloquear puertos con UFW (Uncomplicated Firewall)-
+
+sudo iptables -F
+(Nos aseguramos que IPtables esté limpio antes de habilitar UFW)
+
+sudo ufw enable
+(Para habilitar UFW. Preguntará confirmación, ya que puede interrumpir conexiones SSH)
+
+sudo ufw default deny incoming
+(Buena práctica: Bloquear todo lo entrante por defecto)
+
+sudo ufw default allow outgoing
+(Buena práctica: Permitir todo lo saliente por defecto)
+
+sudo ufw deny 80/tcp
+(Para bloquear el puerto 80 usando la sintaxis de UFW)
+
+sudo ufw deny 21/tcp
+(Para bloquear el puerto 21)
+
+sudo ufw deny 22/tcp
+(Para bloquear el puerto 22. UFW suele tener una regla 'allow SSH' por defecto, esto la sobreescribe)
+
+sudo ufw status numbered
+(Para mostrar el estado y las reglas de UFW con números)
+
+-Habilitar puertos nuevamente con UFW-
+
+sudo ufw allow 80/tcp
+(Para permitir el tráfico al puerto 80)
+
+sudo ufw allow 21/tcp
+(Para permitir el tráfico al puerto 21)
+
+sudo ufw allow 22/tcp
+(Para permitir el tráfico al puerto 22, o usar 'sudo ufw allow ssh')
+
+sudo ufw status
+(Para comprobar el estado final)
+
+==============================================================================================================================================
+
+Práctica 3: Instalación de IDS Snort / Ubuntu
+
+-Descargar e instalar Snort-
+
+sudo apt update
+(Para actualizar los paquetes)
+
+sudo apt install snort -y
+(Para instalar Snort y aceptar las dependencias. Durante la instalación, te pedirá la red local (HOME_NET), ej: 192.168.1.0/24)
+
+ip a
+(Para identificar el nombre de tu interfaz de red, ej: enp0s3 o eth0)
+
+-Crear reglas de detección de tráfico-
+
+sudo nano /etc/snort/rules/local.rules
+(Para editar el archivo de reglas locales de Snort)
+
+(Añadir las siguientes líneas al final del archivo)
+alert icmp any any -> $HOME_NET any (msg:"ALERTA: Trafico ICMP (Ping) detectado"; sid:1000001; rev:1;)
+alert tcp any any -> $HOME_NET 21 (msg:"ALERTA: Trafico FTP (puerto 21) detectado"; sid:1000002; rev:1;)
+alert tcp any any -> $HOME_NET 22 (msg:"ALERTA: Trafico SSH (puerto 22) detectado"; sid:1000003; rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg:"ALERTA: Trafico HTTP (puerto 80) detectado"; sid:1000004; rev:1;)
+
+-Validar y ejecutar el IDS-
+
+sudo snort -T -c /etc/snort/snort.conf
+(Para probar la configuración de Snort. Debe terminar con "Snort successfully validated configuration!")
+
+sudo snort -A console -q -c /etc/snort/snort.conf -i <tu_interfaz>
+(Ej: sudo snort -A console -q -c /etc/snort/snort.conf -i enp0s3)
+(Para ejecutar Snort en modo consola, mostrando alertas en tiempo real. Reemplaza <tu_interfaz> con la obtenida de 'ip a')
+
+-Realizar pruebas desde la máquina host-
+
+(Mientras Snort corre en la VM, abre una terminal en tu máquina Host (Windows/Mac/Linux) y ejecuta:)
+
+ping <IP_de_la_VM>
+(Verás la alerta ICMP en la consola de Snort)
+
+ssh usuario@<IP_de_la_VM>
+(Verás la alerta SSH. No necesitas completar el login)
+
+curl http://<IP_de_la_VM>
+(Verás la alerta HTTP)
+
+(Para FTP, si tienes un cliente:)
+ftp <IP_de_la_VM>
+(O puedes usar telnet para probar la conexión:)
+telnet <IP_de_la_VM> 21
+(Verás la alerta FTP en Snort)
+
+==============================================================================================================================================
+
+Práctica 4: Configurar 2FA con Google Authenticator (Módulo PAM) para SSH
+
+-Instalar Google Authenticator (PAM)-
+
+sudo apt update
+(Para actualizar paquetes)
+
+sudo apt install libpam-google-authenticator
+(Para instalar el módulo PAM de Google Authenticator)
+
+-Configurar Google Authenticator para el usuario-
+
+google-authenticator
+(Ejecuta este comando con el usuario que usas para SSH, NO como root)
+
+(Responde a las preguntas:)
+Make tokens time-based? (y/n) y
+(Se mostrará un código QR. Escanéalo con la app Google Authenticator en tu teléfono)
+(Guarda los códigos de emergencia en un lugar seguro)
+Update your "/home/usuario/.google_authenticator" file? (y/n) y
+Disallow multiple uses of the same token? (y/n) y
+Increase time skew window? (y/n) n
+Enable rate-limiting? (y/n) y
+
+-Configurar PAM para usar Google Authenticator-
+
+sudo nano /etc/pam.d/sshd
+(Para editar la configuración PAM del servicio SSH)
+
+(Añade la siguiente línea AL FINAL del archivo:)
+auth required pam_google_authenticator.so
+
+-Configurar SSH para solicitar 2FA-
+
+sudo nano /etc/ssh/sshd_config
+(Para editar la configuración del demonio SSH)
+
+(Busca la línea 'ChallengeResponseAuthentication' y cámbiala de 'no' a 'yes':)
+ChallengeResponseAuthentication yes
+
+(Asegúrate también de que 'PasswordAuthentication' esté en 'yes':)
+PasswordAuthentication yes
+
+-Reiniciar SSH y realizar la demostración-
+
+sudo systemctl restart sshd
+(Para aplicar los cambios reiniciando el servicio SSH)
+
+-Demostración desde el Host-
+
+ssh tu_usuario@<IP_de_la_VM>
+(Inicia sesión desde tu máquina host. El servidor ahora te pedirá:)
+Password:
+(Ingresa tu contraseña de Ubuntu)
+Verification code:
+(Ingresa el código de 6 dígitos de la app Google Authenticator)
+
+(Si ambos son correctos, accederás al sistema)
+
+==============================================================================================================================================
+Jose Miguel García Báez - 20250755
