@@ -247,3 +247,209 @@ Verification code:
 
 ==============================================================================================================================================
 Jose Miguel García Báez - 20250755
+
+
+CIFRAR Y DESIFRAR UN ARCHIVO USANDO GPG2
+Sudo apt install gnupg (para instalar el programa)
+Crear un archivo de texto con nano
+Gpg -c Texto.txt (para cifrar un archivo individual con contraseña)
+Borrar el archivo original , intentar leer el archivo cifrado con cat
+Gpg -o Texto.txt -d Texto.txt.gpg (para descifrar un archivo cifrado , en este caso
+no se nos pide la contraseña ya que la contraseña se guardo temporalmente en el
+sistema)
+Gpgconf – reload gpg-agent (para borrar la contraseña , en este caso volver a
+aplicar el ejemplo anterior para confirmar que si se pedirá la contraseña)
+
+
+CIFRAR Y DESIFRAR ARCHIVOS CON CLAVES
+Gpg –full-generate-key (Para generar dos claves de gpg)
+-Seleccionar tipo de clave deseado (1 recomendando)
+-Seleccionar longitud de bits (4096 recomendado)
+-Seleccionar el periodo de validez de clave (0 recomendado)
+-Procedemos a colocar nuestra contraseña
+Gpg –list-keys (para ver las claves publicas que hay en el sistema)
+Gpg –list-secret-keys (Para ver las claves privadas que hay en el sistema)
+Gpg –encrypt --recipient ¨llave publica¨ Texto.txt (Para cifrar el archivo con
+nuestra llave publi
+Gpgconf –reload gpg-agent
+Gpg –list-keys
+Gpg –output Texto.txt –decrypt Texto.txt.gpg (para descifrar un archivo el cual fue
+cifrado con llave publica y privada)
+
+
+EXTRAER CLAVES
+Gpg –list-keys
+Gpg –output clave_publica.gpg –export “Llave publica” (para exportar la clave
+publica)
+Gpg –list-secret-keys
+Gpg –output clave_privada.gpg –export-secret-keys “Llave privada” (para exportar
+la clave privada)
+Gpg –output subclave.gpg –export-secret-subkeys “Llave privada” (para exportar
+las subclaves)
+
+
+BORRAR LAS CLAVES , PARA LUEGO IMPORTARLA
+Gpg –list-keys
+Gpg –delete-secret-key (llave privada) (para borrar la clave privada)
+Gpg –delete-key (llave publica) (para borrar la clave publica)
+Gpg –list-keys (en este caso es para confirmar que se hayan borrado las claves)
+Gpg –import clave_publica.gpg (para importar nuestra clave publica)
+Gpg –import clave_privada.gpg (para importar nuestra clave privada)
+Gpg –import subclave.gpg (para importar las subclaves)
+Si realizo un gpg –list-keys podremos confirmar que ya tenemos nuestras claves
+Gpg –output Texto.txt –decrypt Texto.txt.gpg (para descifrar un archivo y así
+comprobar que se importaron correctamente las claves)
+
+
+EXTRAER EL MD5, SHA1 Y SHA256 DE UN TEXTO Y DE UN ARCHIVO
+Primero crearemos dos archivos “Archivo1” y “Archivo2” ambos diciendo HOLA
+Md5sum Archivo1 (para ver el hash con md5 del archivo1)
+Md5sum Archivo2 (para ver el hash con md5 del archivo2)
+Veremos que el hash de ambos archivos es el mismo ya que tienen el mismo
+contenido
+Luego en “Archivo2” cambiar HOLA por HOLAA
+Md5sum Archivo1 (para ver el hash con md5 del archivo1)
+Md5sum Archivo2 (para ver el hash con md5 del archivo2)
+Y veremos que el hash de ambos archivos es diferente ya que tienen contenido
+diferente
+Md5sum Archivo1 > hash.txt (para extrar el contenido del hash a un archivo txt
+llamado hash.txt)
+Md5sum Archivo2 >> hash.txt (para extrar el contenido del hash al mismo archivo
+txt anteriormente)
+Sha1sum “archivo” (para ver el hash con SHA1 del archivo)
+Sha1sum Archivo1 >> hash.txt (para extrar el contenido del hash a un archivo txt
+llamado hash.txt)
+Sha1sum Archivo2 >> hash.txt (para extrar el contenido del hash al mismo archivo
+txt anteriormente)
+Sha256sum “archivo” (para ver el hash con SHA1 del archivo)
+Sha256sum Archivo1 >> hash.txt (para extrar el contenido del hash a un archivo
+txt llamado hash.txt)
+Sha256sum Archivo2 >> hash.txt (para extrar el contenido del hash al mismo
+archivo txt anteriormente)
+
+
+CONFIGURAR UN MODULO PAM PARA QUE BLOQUEE EL LOGIN DE SSH TRAS 3 INTENTOS FALLIDOS
+Sudo apt install libpam-pwquality -y (para instalar los módulos pam)
+Sudo apt install libpwquality-tools (para instalar las diferentes herramientas
+utilizadas en los módulos)
+Cd /etc/pam.d/ (para movernos al directorio donde podremos continuar la
+configuración del servicio PAM)
+Sudo nano common-password (aquí podemos ver los parámetros que debe cumplir
+nuestra contraseña por ejemplo la longitud mínima) por ejemplo aquí podemos
+agregar los siguientes parámetros
+Minlen= x (para que el mínimo de caracteres de la contraseña sea X)
+Minclass=x (Los tipos de caracteres diferentes que se deben incluir en la contra ,
+sea dígitos , mayúsculas , minúsculas etc)
+Dcredit= -X (es obligatorio que la contraseña tengo por lo menos un numero)
+Ocredit= -X (es obligatorio que la contraseña tenga un signo de puntuación)
+Ucredit= -X (Es obligatorio que la contraseña tenga mayúsculas)
+Passwd jose20250755 (para crear una nueva contraseña acorde con los nuevos
+parámetros que hemos creado)
+Passwd cupsadmin
+
+
+BLOQUEAR LOGIN CON INTENTOS FALLIDOS
+Sudo nano common-account (para cofingurar el archivo de acceder a las cuentas)
+Aquí iremos a la línea # here are the per-package modules , y debajo agregamos:
+Account required pam_faillock.so (para que se requiera utilizar faillock a la hora
+de loguearnos)
+Sudo nano common-auth (para configurar el archivo de los procesos de
+autenticación)
+Aquí iremos a la línea # here are the per-package modules , y debajo agregamos:
+Auth required pam_faillock.so preauth deny=3 unlock_time=60 (aqui le estamos
+dejando claro al Sistema que debe utilizar faillock para la autentificación de
+usuario, si el usuario loguea 3 mal incorrectamente , el logeo se bloqueara por 60
+segundos)
+Ahora iremos a la línea #heres the failback if no module succeeds , iremo a la linea
+de abajo (auth requisite pam_deny.so) y agregaremos (#) al inicio , abajo agrego:
+Auth [default=die] pam_faillock.so authfail
+Faillock –user “nombre” (para ver la información de los logueos de un usuario)
+Faillock –user “nombre” –reset (para desbloquear un usuario luego de haber sido
+bloqueado)
+
+
+BLOQUEAR Y DESBLOQUEAR EL ACCESO A PUERTOS COMUNES USANDO IPTABLES (22,80,21)
+Para esta demostraccion primero mostraremos los servicios de http y ssh
+funcionando , primero entramos al servidor con nuestra ip y luego nos logeamos
+con ssh para comprobar que efectivamente ambos servicios funcionan de manera
+correcta
+Sudo iptables -l –line-numbers (aqui Podemos ver una lista de lo que hemos hecho
+con el iptables)
+Sudo iptables -A INPUT -p tcp –dport 80 -j DROP (para desactivar el puerto 80)
+Sudo iptables -A INPUT -p tcp –dport 21 -j DROP (para desactivar el puerto 21)
+Sudo iptables -A INPUT -p tcp –dport 22-j DROP (para desactivar el puerto 22)
+Luego de bloquear ambos puertos , debemos intentar acceder al servidor la ip para
+que se demuestre que efectivamente ya no carga porque el puerto 80 fue bloqueado
+, luego haremos lo mismo con el ssh y tampoco veremos que funcione porque el
+puerto 22 tambien se encuentra bloqueado
+Sudo iptables -A INPUT -p tcp –dport 80 -j ACCEPT (para desbloquear el puerto
+80)
+Sudo iptables -A INPUT -p tcp –dport 21 -j ACCEPT (para desbloquear el puerto
+21)
+Sudo iptables -A INPUT -p tcp –dport 22-j ACCEPT (para desbloquear el puerto
+22)
+Sudo iptables -D INPUT 1 (Para eliminar las reglas en las cuales bloqueamos los
+puertos)
+Luego de desbloquearlos los puertos , debemos hacer la prueba de acceder al
+servidor y al ssh para ver si funcionan de manera correcta
+
+
+ACTIVAR Y DESACTIVAR PUERTOS MEDIANTE EL FIREWALL
+(Antes de iniciar este proceso es recomendable borrar todas las reglas que hicimos
+anteriormente con el iptables)
+Sudo ufw status verbose (para verificar el estatus de nuestro firewall)
+Sudo ufw enable (para activarlo en caso de que estuviera inactivo)
+Sudo ufw deny 80/tcp (para bloquear el puerto 80)
+Sudo ufw deny 22/tcp (para bloquear el puerto 22)
+Sudo ufw deny 21/tcp (para bloquear el puerto 21)
+Sudo ufw status numbered (para ver el status de los puertos)
+Luego de bloquear ambos puertos , debemos intentar acceder al servidor la ip para
+que se demuestre que efectivamente ya no carga porque el puerto 80 fue bloqueado
+, luego haremos lo mismo con el ssh y tampoco veremos que funcione porque el
+puerto 22 tambien se encuentra bloqueado
+Sudo ufw allow 80/tcp (para activar el puerto 80)
+Sudo ufw allow 22/tcp (para activar el puerto 22)
+Sudo ufw allow 21/tcp (para activar el puerto 21)
+
+
+
+INSTALAR SNORT Y CONFIGURARLO PARA QUE DETECTE TRAFICO ENTRANTE
+sudo apt install snort -y (para instalar el servicio de snort)
+Al iniciar la configuración , pondremos nuestro rango de red y su debido prefijo de
+mascara de subred, en este caso fue 192.168.0.0/24
+Sudo nano /etc/snort/snort.conf (para entrar al archivo de configuración de snort)
+Iremos a la línea que dice ipvar HOME_NET any, borraremos el any pondremos
+nuestro rango de ip y el prefijo de subred, en este caso es 192.168.0.0/24
+Iremos a la línea #include $RULE_PATH/web-activeex.rules y agregaremos lo
+siguiente al final:
+Include $RULE_PATH/local.rules (ya Podemos salir de la configuración)
+Sudo nano /etc/snort/rules/local.rules (aquí podremos agregar las reglas del trafico
+que vamos a detectar)
+Agregamos las siguientes reglas:
+alert icmp any any -> $HOME_NET any (msg:"Trafico ICMP detectado"; sid:
+180001; rev:1;) (Basicamente esto nos mandara una alerta que dira ¨TRAFICO
+ICMP DETECTADO¨ cuando hagamos uso del protocolo ICMP , es decir cuando
+hagamos un ping)
+alert tcp any any -> $HOME_NET 21 (msg:"Trafico FTP detectado"; sid: 100002;
+rev: 1;)
+alert tcp any any -> $HOME_NET 22 (msg:"Trafico SSH detectado"; sid: 108003;
+rev:1;)
+alert tcp any any -> $HOME_NET 80 (msg: "Trafico HTTP detectado"; sid:
+100004; rev: 1;)
+Ya Podemos salir de la configuración con control o , enter y control x
+Sudo snort -T -i enp0s3 -c /etc/snort/snort.conf (Para probar si la configuración
+esta correcta)
+Sudo snort -i enp0s3 -c /etc/snort/snort.conf (para Validar la configuración del
+snort en nuestro sistema)
+EN OTRA TERMINAL EJECUTAMOS LO SIGUIENTE
+Sudo tail -f /var/log/snort/snort.alert.fast (esto se utiliza para poder monitorear en
+tiempo real el archivo de alertas de snort)
+EN CMD EJECUTAMOS LO SIGUIENTE
+Ping ip del servidor(para hacer un ping a nuestra maquina virtual y así
+comprobemos como llega la alerta del ICMP con snort)
+Ssh jose20250755@ip_del servidor (para acceder con ssh y así comprobemos
+como llega la alerta del trafico ssh en snort)
+Telnet ip del servidor 21 (para utilizar telnet con el puerto 21 y así comprobemos
+como llega la alerta del trafico ftp en snort)
+Curl http://ip del servidor (para utilizar http con el puerto 80 y así comprobemos
+como llega la alerta del trafico http en snort)
